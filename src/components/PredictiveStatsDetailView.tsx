@@ -47,22 +47,39 @@ export function PredictiveStatsDetailView({ onBack }: PredictiveStatsDetailViewP
       </section>
 
       <section className="detail-view__reference">
-        <h4 className="detail-view__reference-title">Reference: statistic types &amp; data sources</h4>
+        <h4 className="detail-view__reference-title">
+          Reference: statistic types &amp; data sources
+        </h4>
         <p className="detail-view__reference-desc">
-          Indicators the portal can compute when live data is connected ({PREDICTIVE_STATISTICS_CATALOG.length}{' '}
-          types).
+          A site can show a predictive indicator when any of the following statistics are computed
+          from live telemetry. Each row lists what feeds the statistic and the typical prediction.
         </p>
         <ul className="detail-view__reference-list">
           {PREDICTIVE_STATISTICS_CATALOG.map((item) => (
             <li key={item.statistic} className="detail-view__reference-item">
               <p className="detail-view__reference-name">{item.statistic}</p>
               <p className="detail-view__reference-meta">
-                <span className="detail-view__reference-label">Feeds:</span> {item.dataFeed}
+                Predictive indicator the portal can raise when this trend is detected.
               </p>
-              <p className="detail-view__reference-meta">
-                <span className="detail-view__reference-label">Typical prediction:</span>{' '}
-                {item.typicalPrediction}
-              </p>
+              <div className="detail-view__alarm-group">
+                <p className="detail-view__alarm-group-title">Data feed &amp; prediction</p>
+                <div className="detail-view__alarm-table-wrap">
+                  <table className="detail-view__alarm-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">What feeds it</th>
+                        <th scope="col">Typical prediction</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>{item.dataFeed}</td>
+                        <td>{item.typicalPrediction}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </li>
           ))}
         </ul>
