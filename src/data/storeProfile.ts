@@ -57,7 +57,7 @@ const MOCK_STATUS_HISTORY: Record<string, StoreStatusHistoryEntry[]> = {
   '0464': [
     {
       severity: 'yellow',
-      reason: 'Recurring controller alarm (lower severity)',
+      reason: 'Diesel yellow trouble alert',
       startedAt: '2026-06-12T09:00:00',
       endedAt: '2026-06-14T16:30:00',
     },
@@ -67,17 +67,25 @@ const MOCK_STATUS_HISTORY: Record<string, StoreStatusHistoryEntry[]> = {
       startedAt: '2026-07-07T22:15:00',
     },
   ],
+  '6807': [
+    {
+      severity: 'red',
+      reason: 'Impairment active for more than 10 hours',
+      startedAt: '2026-07-08T01:00:00',
+    },
+  ],
+  '3302': [
+    {
+      severity: 'red',
+      reason: 'Impairment active for more than 10 hours',
+      startedAt: '2026-07-07T18:20:00',
+    },
+  ],
   '0489': [
     {
       severity: 'yellow',
-      reason: 'Excessive jockey pump run events',
+      reason: 'Jockey yellow trouble alert',
       startedAt: '2026-07-07T18:45:00',
-    },
-    {
-      severity: 'yellow',
-      reason: 'AC power quality low',
-      startedAt: '2026-05-22T11:00:00',
-      endedAt: '2026-05-24T08:15:00',
     },
   ],
   '6525': [
@@ -103,22 +111,50 @@ const MOCK_STATUS_HISTORY: Record<string, StoreStatusHistoryEntry[]> = {
   '1907': [
     {
       severity: 'yellow',
-      reason: 'Recurring controller alarm (lower severity)',
+      reason: 'Diesel yellow trouble alert',
       startedAt: '2026-07-08T07:55:00',
     },
+  ],
+  '6669': [
     {
       severity: 'yellow',
-      reason: 'Recurring controller alarm (lower severity)',
-      startedAt: '2026-06-01T06:00:00',
-      endedAt: '2026-06-03T12:00:00',
+      reason: 'Diesel yellow trouble alert',
+      startedAt: '2026-07-08T02:10:00',
     },
   ],
-  '2808': [
+  '6827': [
     {
       severity: 'yellow',
-      reason: 'AC power quality low',
-      startedAt: '2026-03-10T08:00:00',
-      endedAt: '2026-03-11T19:45:00',
+      reason: 'Diesel yellow trouble alert',
+      startedAt: '2026-07-08T10:40:00',
+    },
+  ],
+  '4618': [
+    {
+      severity: 'yellow',
+      reason: 'Electric yellow trouble alert',
+      startedAt: '2026-07-08T09:30:00',
+    },
+  ],
+  '3863': [
+    {
+      severity: 'yellow',
+      reason: 'Electric yellow trouble alert',
+      startedAt: '2026-07-08T11:15:00',
+    },
+  ],
+  '0568': [
+    {
+      severity: 'yellow',
+      reason: 'Electric yellow trouble alert',
+      startedAt: '2026-07-08T05:00:00',
+    },
+  ],
+  '6213': [
+    {
+      severity: 'yellow',
+      reason: 'Jockey yellow trouble alert',
+      startedAt: '2026-07-08T03:30:00',
     },
   ],
 }
@@ -137,9 +173,16 @@ const STORE_INFO_OVERRIDES: Record<string, Partial<StoreOverallInfo>> = {
   '0464': { pumpRoomTemp: '74°F', siteGrade: 'C', lastInspection: '2026-04-28' },
   '6525': { pumpRoomTemp: '71°F', siteGrade: 'D', lastInspection: '2026-03-15' },
   '6986': { pumpRoomTemp: '46°F', siteGrade: 'D', connectivityStatus: 'Online' },
+  '6807': { pumpRoomTemp: '70°F', siteGrade: 'D' },
+  '3302': { pumpRoomTemp: '72°F', siteGrade: 'D' },
   '0489': { pumpRoomTemp: '69°F', siteGrade: 'B-' },
   '6669': { pumpRoomTemp: '67°F', siteGrade: 'B' },
   '1907': { pumpRoomTemp: '70°F', siteGrade: 'B-' },
+  '6827': { pumpRoomTemp: '52°F', siteGrade: 'B-' },
+  '4618': { pumpRoomTemp: '68°F', siteGrade: 'B-' },
+  '3863': { pumpRoomTemp: '69°F', siteGrade: 'B-' },
+  '0568': { pumpRoomTemp: '71°F', siteGrade: 'B-' },
+  '6213': { pumpRoomTemp: '67°F', siteGrade: 'B-' },
 }
 
 export function getStoreStatus(storeId: string): StoreStatus {
@@ -263,8 +306,8 @@ const MOCK_RESOLVED_FLAG_HISTORY: Record<string, StoreFlagEvent[]> = {
     {
       date: '2026-06-14T16:30:00',
       category: 'status-alert',
-      title: 'Recurring controller alarm (lower severity)',
-      detail: 'Battery #1 Trouble — cleared after 2 days',
+      title: 'Diesel yellow trouble alert',
+      detail: 'Common Trouble Alarm — Cleared after 2 days',
       severity: 'yellow',
       active: false,
     },
@@ -273,8 +316,8 @@ const MOCK_RESOLVED_FLAG_HISTORY: Record<string, StoreFlagEvent[]> = {
     {
       date: '2026-05-24T08:15:00',
       category: 'status-alert',
-      title: 'AC power quality low',
-      detail: 'Voltage restored to nominal range',
+      title: 'Jockey yellow trouble alert',
+      detail: 'Jockey Switch in Manual — restored to Auto',
       severity: 'yellow',
       active: false,
     },
@@ -284,17 +327,27 @@ const MOCK_RESOLVED_FLAG_HISTORY: Record<string, StoreFlagEvent[]> = {
       date: '2026-04-20T09:00:00',
       category: 'status-alert',
       title: 'Excessive run events',
-      detail: 'Run event count returned below threshold',
+      detail: 'Main fire pump starts returned to normal band (3–5)',
       severity: 'red',
       active: false,
     },
   ],
-  '2808': [
+  '1907': [
     {
-      date: '2026-03-11T19:45:00',
+      date: '2026-06-03T12:00:00',
       category: 'status-alert',
-      title: 'AC power quality low',
-      detail: 'Power quality normalized',
+      title: 'Diesel yellow trouble alert',
+      detail: 'Low Suction Pressure — Cleared',
+      severity: 'yellow',
+      active: false,
+    },
+  ],
+  '6807': [
+    {
+      date: '2026-05-10T14:00:00',
+      category: 'status-alert',
+      title: 'Electric yellow trouble alert',
+      detail: 'Over Voltage — Cleared',
       severity: 'yellow',
       active: false,
     },

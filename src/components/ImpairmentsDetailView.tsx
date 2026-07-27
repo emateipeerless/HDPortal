@@ -51,8 +51,8 @@ export function ImpairmentsDetailView({ onBack }: ImpairmentsDetailViewProps) {
       <section className="detail-view__reference">
         <h4 className="detail-view__reference-title">Reference: possible controller impairments</h4>
         <p className="detail-view__reference-desc">
-          Alarm names from diesel and electric fire pump controllers ({IMPAIRMENT_CATALOG.length}{' '}
-          types). Source: controller impaired alarm events.
+          Trouble alerts from diesel, electric, and jockey controllers ({IMPAIRMENT_CATALOG.length}{' '}
+          types), with red vs yellow classification.
         </p>
         <ul className="detail-view__reference-list detail-view__reference-list--compact">
           {IMPAIRMENT_CATALOG.map((item) => (
@@ -62,6 +62,9 @@ export function ImpairmentsDetailView({ onBack }: ImpairmentsDetailViewProps) {
                 <span className="detail-view__reference-tag">{item.pumpTypes}</span>
               </p>
               <p className="detail-view__reference-meta">{item.escalationRule}</p>
+              <p className="detail-view__reference-meta">
+                <span className="detail-view__reference-label">Remedy:</span> {item.remedy}
+              </p>
             </li>
           ))}
         </ul>

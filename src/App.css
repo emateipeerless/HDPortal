@@ -741,6 +741,52 @@ body {
   color: var(--color-text-muted);
 }
 
+.detail-view__alarm-group {
+  margin-top: 0.5rem;
+  padding-left: 0.25rem;
+}
+
+.detail-view__alarm-group-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.detail-view__alarm-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 0.65rem;
+}
+
+.detail-view__alarm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.detail-view__alarm-table th,
+.detail-view__alarm-table td {
+  padding: 0.35rem 0.55rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.detail-view__alarm-table th {
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+}
+
+.detail-view__alarm-table td {
+  color: var(--color-text-muted);
+}
+
+.detail-view__alarm-table td:first-child {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
 .detail-view__table-wrap {
   background: var(--color-surface);
   border-radius: var(--radius);
