@@ -26,7 +26,7 @@ export function DetailViewLayout({
           <p className="detail-view__subtitle">{subtitle}</p>
         </div>
       </div>
-      <div className="detail-view__table-wrap">{children}</div>
+      <div className="detail-view__body">{children}</div>
     </main>
   )
 }

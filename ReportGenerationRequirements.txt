@@ -1,0 +1,281 @@
+================================================================================
+REPORT PORTAL — DATA / VARIABLE REQUIREMENTS
+================================================================================
+Purpose: Inventory of everything the UI (and upstream APIs) must supply or
+compute to produce Walmart, PnG, and Ford monthly fire-pump reports.
+
+Last aligned with Report Portal application logic (AMI fetch → map → render).
+
+
+--------------------------------------------------------------------------------
+1) UI INPUTS (user-provided for each report run)
+--------------------------------------------------------------------------------
+reportType                 walmart | png | ford
+deviceIds[]                list of AMI Device IDs to include in the main report
+fromDate                   report period start (YYYY-MM-DD)
+toDate                     report period end (YYYY-MM-DD)
+includeFuel                boolean — whether to call fuel register for diesels
+reportTitle                e.g. "Monthly Fire Pump Report"
+customerName               e.g. "Peerless FireConnect" / "Ford" / customer brand
+dateRangeDisplay           human label, e.g. "Jun 1 – Jun 30, 2026"
+recipients[]               optional email list if sending
+sendEmail                  boolean
+
+PnG-only UI / preset metadata:
+offlineDeviceIds[]         devices forced to full-period impairment
+overdueSubscriptionIds[]   devices listed only in Overdue Subscriptions section
+                           (excluded from main KPIs)
+(excludedSentryIds)        not fetched — documented exclusions only
+
+
+--------------------------------------------------------------------------------
+2) RAW DEVICE FIELDS TO PULL FROM AMI (per Device ID)
+--------------------------------------------------------------------------------
+Source: System Info (AMI_SYSINFO_URL)
+  DeviceID
+  PumpType                                   Diesel | Electric (etc.)
+  PumpInformation["Site Information"]["Pump Name"].Value
+  PumpInformation["Site Information"].City.Value
+  PumpInformation["Site Information"].State.Value
+  PumpInformation.general.fuelTankLevel      "Yes" | "No"
+      → fuelMonitoringEnabled = (fuelTankLevel == "Yes")
+
+Source: Registers (AMI_RUN_HOURS_URL)
+  "Pump Total Run Time"                      lifetime run hours (raw + parsed)
+  "Monitored Fuel Tank Percentage"           ONLY if Diesel AND fuelTankLevel=Yes
+      → fuelPercentage = Value / 100
+
+Source: Events (AMI_EVENTS_URL) — pump run start/stop for period
+  run intervals between fromDate and toDate
+  → periodRunMinutes / periodRunHours
+  → runCount
+  → runs[] { startTime, durationMinutes, ... }
+  → unclosedRun
+
+Source: Events (AMI_EVENTS_URL) — impaired alarms for period
+  impairedIntervals / mergedImpairedIntervals
+  → impairedMinutes / impairedHours
+  → impairedEventCount / impairedMergedBlockCount
+  → activeUnclosedImpairedAlarms[] { alarmName }
+
+
+--------------------------------------------------------------------------------
+3) PER-DEVICE DERIVED FIELDS (after fetch / mapping)
+--------------------------------------------------------------------------------
+deviceId
+pumpNameOrSite             Site # (Walmart) or Pump Name (PnG/Ford site label)
+location                   "City, State"
+pump / driver              normalized "Diesel" | "Electric"
+fuelMonitoring             "Yes" | "No"
+fuelLevelPct               number or blank (blank if not monitored / electric)
+periodRunMinutes
+periodRunHours
+lifetimeRunHours
+runCount
+impairedHours
+impairedMinutes
+offline                    "Yes" | "No"  (PnG preset override)
+troubleSite                "1" or blank  (see rules below)
+ongoingAlarms              joined alarm names (includes "Offline" when forced)
+hasUnclosedRun
+hasUnclosedImpairedAlarm
+
+Ford-only per-device extras:
+monthly_test_min           sum of run durations in 25–35 minute band (weekly tests)
+engine_hrs_start           diesel only: lifetimeHrs - periodHrs
+engine_hrs_end             diesel only: lifetimeHrs
+fuel_pct                   rounded fuel % when monitored diesel
+
+
+--------------------------------------------------------------------------------
+4) TROUBLE / COMPLIANCE RULES (used to flag rows + drive KPIs)
+--------------------------------------------------------------------------------
+Walmart / PnG “tested”:
+  Electric: periodRunMinutes >= 24
+  Diesel:   periodRunMinutes >= 100
+
+Walmart / PnG “in service”:
+  impairedHours < 10
+  Offline devices: impairedHours = full inclusive period hours
+                   (days in [fromDate..toDate] inclusive) * 24
+                   e.g. Jun 1–30 → 720 hours → always OUT of service
+
+Walmart / PnG fuel OK (only counted if fuelMonitoring=Yes and fuel known):
+  fuelLevelPct >= 67
+
+Trouble site if ANY of:
+  Offline = Yes
+  Diesel and periodRunMinutes < 100
+  Electric and periodRunMinutes < 24
+  impairedHours > 10
+  Diesel + fuelMonitoring + fuel known + fuel < 67
+
+Ford weekly test recognition:
+  durationMinutes between 25 and 35 (inclusive) = weekly test
+  other runs with duration > 1 min = unplanned event
+  Ford fuel threshold in template/core: 75%
+
+
+--------------------------------------------------------------------------------
+5) FLEET-LEVEL COUNTS / KPI VARIABLES (header + pie charts)
+--------------------------------------------------------------------------------
+A) Shared report header (UI / token values)
+  REPORT_TITLE
+  CUSTOMER_NAME
+  DATE_RANGE                 (= dateRangeDisplay)
+  GENERATED_AT               timestamp when report is rendered
+
+B) Walmart + PnG KPIs (computed from per-device rows)
+  TOTAL_SITES / TOTAL_UNITS       count of devices in main report rows
+  TESTED_COUNT
+  NOT_TESTED_COUNT             = TOTAL_SITES - TESTED_COUNT
+  TESTED_PERCENT               round(100 * TESTED_COUNT / TOTAL_SITES)
+
+  Pie chart “Fire Pump Tests” segment counts (4 slices):
+    ELECTRIC_TESTED_COUNT
+    DIESEL_TESTED_COUNT
+    ELECTRIC_NOT_TESTED_COUNT
+    DIESEL_NOT_TESTED_COUNT
+
+  IN_SERVICE_COUNT             impairedHours < 10
+  OUT_SERVICE_COUNT            = TOTAL_SITES - IN_SERVICE_COUNT
+  IN_SERVICE_PERCENT
+
+  FUEL_OK_COUNT                among fuel-monitored diesels with known fuel, >= 67
+  FUEL_LOW_COUNT               among same set, < 67
+  FUEL_OK_PERCENT              of fuel-known monitored set only
+                               (devices without fuel monitoring DO NOT count)
+
+C) Ford KPIs (from ford_core / FordTemplateV5)
+  TOTAL_PUMPS
+  TEST_COMPLIANT_COUNT
+  TEST_NONCOMPLIANT_COUNT
+  TEST_COMPLIANCE_PERCENT
+  TEST_TARGET_MIN_PER_WEEK     (display constant / config)
+  TEST_VARIANCE_PERCENT        (display constant / config)
+  RUNS_COMPLETED
+  RUNS_MISSED
+  RUNS_COVERAGE_PERCENT
+  WEEKS_IN_PERIOD
+  FUEL_OK_COUNT / FUEL_LOW_COUNT / FUEL_OK_PERCENT
+  FUEL_THRESHOLD               (Ford uses 75)
+
+
+--------------------------------------------------------------------------------
+6) DETAIL TABLES — ROW VARIABLES TO SHOW
+--------------------------------------------------------------------------------
+A) Trouble Sites table (Walmart / PnG)
+  Columns (dynamic rows for each trouble site):
+    Site #  OR  Pump Name      (template differs)
+    Location
+    Driver Type                (Pump / Diesel|Electric)
+    Pump Tests                 Yes/No vs threshold
+    Impairment Hours
+    Fuel Level                 "NN%" or "—"
+
+B) Overdue Subscriptions table (PnG only)
+  Not in main KPIs. Separate list at bottom.
+  Columns:
+    Device ID
+    Pump Name
+    Location
+    Status                     e.g. "Overdue Subscription"
+
+C) Optional / reserved (present in templates but not always populated)
+  Work-order / low-fuel list rows (Site/Pump, Location, Fuel badge)
+  FULL_REPORT_URL
+  FUEL_STATUS_COLOR*
+
+D) Ford tables
+  Run Hours / Status rows:
+    RH_SITE, RH_LOCATION, RH_DRIVER
+    RH_ENGINE_HRS_START, RH_ENGINE_HRS_END
+    RH_TEST_MIN, RH_FUEL_PCT
+    RH_STATUS_TEXT, RH_STATUS_COLOR
+
+  Unplanned events rows:
+    EV_SITE, EV_LOCATION, EV_DRIVER
+    EV_START, EV_DURATION, EV_REASON
+
+  Weekly test runs rows:
+    TR_SITE, TR_LOCATION, TR_DRIVER
+    TR_START, TR_DURATION
+
+
+--------------------------------------------------------------------------------
+7) FETCH SUMMARY COUNTS (UI status / preview cards)
+--------------------------------------------------------------------------------
+summary.total                  devices attempted in main list
+summary.success                successful AMI fetches (after offline patch)
+summary.failed                 failed AMI fetches still not recovered
+summary.offline                count of offlineDeviceIds applied
+summary.overdueSubscriptions   count of overdue rows built
+
+
+--------------------------------------------------------------------------------
+8) MINIMUM DATA CONTRACT TO “MAKE THIS REAL” IN A NEW UI
+--------------------------------------------------------------------------------
+For each connected fire pump in the selected fleet + period, the UI/API must
+be able to expose at least:
+
+IDENTITY
+  deviceId
+  pumpName (or store/site number)
+  city, state
+  pumpType (Diesel/Electric)
+
+CAPABILITY FLAGS
+  fuelMonitoringEnabled (from general.fuelTankLevel)
+  offline (ops flag)
+  overdueSubscription (ops / billing flag)
+  excludeFromFleet (e.g. SENTRY)
+
+PERIOD METRICS
+  periodRunMinutes (or equivalent test/run minutes)
+  impairedHours (or alarm downtime hours)
+  fuelPercentage (nullable; only when fuelMonitoringEnabled)
+
+EVENT DETAIL (needed for Ford; useful for drill-down elsewhere)
+  runs[] with startTime + durationMinutes
+  impaired alarm intervals / names
+
+REPORT CONFIG
+  fromDate, toDate, reportTitle, customerName
+
+Then compute and display:
+  fleet totals, tested/not tested, in/out service, fuel ok/low
+  pie percentages
+  trouble site list
+  overdue subscription list (PnG)
+  Ford weekly-test / unplanned / engine-hour tables
+
+
+--------------------------------------------------------------------------------
+9) THRESHOLD CONSTANTS (current application defaults)
+--------------------------------------------------------------------------------
+ELECTRIC_MIN_TEST_MINUTES     24
+DIESEL_MIN_TEST_MINUTES       100
+IMPAIR_LIMIT_HOURS            10
+WALMART_PNG_FUEL_MIN_OK       67
+FORD_FUEL_THRESHOLD           75
+FORD_WEEKLY_TEST_MIN_MINUTES  25
+FORD_WEEKLY_TEST_MAX_MINUTES  35
+
+
+--------------------------------------------------------------------------------
+10) QUICK MAPPING: WHERE EACH VALUE IS GRABBED TODAY
+--------------------------------------------------------------------------------
+UI form                    → reportType, dates, title, customer, recipients
+Device preset              → deviceIds, offlineDeviceIds, overdueSubscriptionIds
+AMI System Info            → pump name, city, state, pump type, fuelTankLevel
+AMI Pump Total Run Time    → lifetime hours
+AMI run events             → period run minutes + Ford weekly/unplanned splits
+AMI impaired alarm events  → impairment hours + alarm names
+AMI fuel register          → fuel % (diesel + fuelTankLevel=Yes only)
+Report generator (Python)  → KPI counts, percents, pie charts, HTML tokens
+Offline override (server)  → full-period impairedHours + Offline flag
+Overdue list (server)      → separate bottom table, excluded from KPI rows
+
+================================================================================
+END OF FILE
+================================================================================

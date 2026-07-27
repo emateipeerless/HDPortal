@@ -27,6 +27,7 @@ export function PumpActivityDetailView({ pumpType, onBack }: PumpActivityDetailV
       accentClass="detail-view--blue"
       onBack={onBack}
     >
+      <div className="detail-view__table-wrap">
       <table className="detail-view__table">
         <thead>
           <tr>
@@ -58,6 +59,7 @@ export function PumpActivityDetailView({ pumpType, onBack }: PumpActivityDetailV
           })}
         </tbody>
       </table>
+      </div>
     </DetailViewLayout>
   )
 }

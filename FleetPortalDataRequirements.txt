@@ -1,0 +1,564 @@
+================================================================================
+HOME DEPOT FLEET PORTAL — DATA / VARIABLE REQUIREMENTS
+================================================================================
+Purpose: Inventory of everything the Fleet Analytics Dashboard UI must supply
+or compute to replace mock data with live IoT fire-pump telemetry.
+
+Companion to: ReportGenerationRequirements.txt (single-page monthly reports).
+This document covers the portfolio dashboard, drill-down lists, and site pages.
+
+Portfolio context (current UI):
+  Customer / brand        Home Depot
+  Site key                Store number (e.g. 0464) + City, State
+  Device / site count     34 stores in portfolio list
+
+
+--------------------------------------------------------------------------------
+1) UI SURFACES THAT NEED LIVE DATA
+--------------------------------------------------------------------------------
+Main dashboard metric cards
+  Immediate Attention Required (red)     → click → red site list
+  Monitor Closely (yellow)               → click → yellow site list
+  No Action Required (green)             → count only (not clickable yet)
+  Impairments (blue)                     → click → active impairment list
+  Predictive Statistics (blue)           → click → predictive list
+  Jockey Pump Activity (blue)            → click → excessive jockey sites
+  Fire Pump Activity (blue)              → click → excessive main pump sites
+  Average Resolution Time (grey)         → value + sparkline + MoM %
+  Overall Portfolio Grade (grey)         → letter grade + percentage
+
+Sidebar / search
+  Store list with status dots (red | yellow | green)
+  Search by store number → open site detail
+
+Site detail page (per store click)
+  Overall site info
+  Active flags
+  Red / yellow status history
+  Full flag history (active + resolved)
+
+
+--------------------------------------------------------------------------------
+2) IDENTITY / PORTFOLIO MASTER LIST (per store)
+--------------------------------------------------------------------------------
+Must maintain or pull a Home Depot store ↔ device mapping.
+
+STORE MASTER
+  storeId                  Home Depot store number (UI key, e.g. "0464")
+  city                     Site city
+  state                    Site state
+  locationDisplay          "City ST" (or "City, State") for sidebar / tables
+  deviceIds[]              One or more device IDs at that store
+                           (diesel main, electric main, jockey, sensors)
+
+From device system info (per Device ID) — same sources as report portal:
+  DeviceID
+  PumpType                 Diesel | Electric | Jockey (normalize)
+  PumpInformation["Site Information"]["Pump Name"].Value
+  PumpInformation["Site Information"].City.Value
+  PumpInformation["Site Information"].State.Value
+  PumpInformation.general.fuelTankLevel   "Yes" | "No"  (if used later)
+
+SITE-LEVEL ROLLUP FIELDS (for site detail "Overall Site Info")
+  pumpConfiguration        e.g. "Diesel + Electric + Jockey"
+                           (derived from deviceIds / PumpTypes at store)
+  controllerType           controller product / model (asset registry)
+  connectivityStatus       Online | Offline | Partial
+                           (all devices online vs any offline)
+  devicesOnline            "N of M"  (online device count / total at store)
+  lastInspection           date (ops / CMMS / manual — may not be in telemetry feed)
+  siteGrade                letter grade for the store (see grading rules)
+
+
+--------------------------------------------------------------------------------
+3) RAW TELEMETRY TO PULL (per Device ID)
+--------------------------------------------------------------------------------
+A) System Info
+  DeviceID, PumpType, site name, city, state, fuelTankLevel
+  (see section 2)
+
+B) Registers (run hours / related registers)
+  "Pump Total Run Time"                  lifetime run hours
+  Pump room temperature                  current / latest °F
+                                         (temperature sensor — NOT humidity)
+  Any AC power quality registers if available
+                                         (voltage per leg, frequency, etc.)
+  Battery voltage (if available)         for predictive trends
+
+C) Events — pump run start/stop
+  Run intervals for configurable windows:
+    current calendar month
+    previous calendar month
+    trailing 6 calendar months (or 180 days)
+    last 24 hours (for short-window jockey flags)
+  Per run:
+    startTime
+    endTime (or unclosed)
+    durationMinutes
+    pump / device identity (main fire vs jockey)
+
+  Derived per device / period:
+    runCount / startsThisMonth
+    periodRunMinutes / periodRunHours
+    unclosedRun
+
+D) Events — controller / impairment alarms
+  Alarm intervals for period + currently active (unclosed) alarms
+  Per alarm:
+    alarmName
+    startTime
+    endTime (or still active)
+    durationHours (computed)
+    pump type context (Diesel vs Electric)
+
+  Derived:
+    impairedMinutes / impairedHours
+    activeUnclosedImpairedAlarms[] { alarmName, startTime, durationHours }
+    impairedEventCount / merged blocks (same approach as report portal)
+
+
+--------------------------------------------------------------------------------
+4) STATUS CLASSIFICATION — RED / YELLOW / GREEN
+--------------------------------------------------------------------------------
+Each store gets exactly one current portfolio status used by:
+  Dashboard red / yellow / green counts
+  Sidebar / search status dots
+  Site detail status badge
+
+GREEN (No Action Required)
+  Store is not currently RED or YELLOW
+
+RED — Immediate Attention Required
+  Trigger if ANY of the following is true for the store:
+
+  R1) Impairment active > 10 hours
+      Alarm name is in the diesel OR electric impairment lists below
+      AND durationHours > 10 (still open / unclosed preferred)
+
+  R2) Pump room temperature below 50°F
+      Latest (or sustained) pump room temp < 50
+
+  R3) Excessive main fire pump run events
+      Main / fire pump starts in current month in excessive band
+      (see section 6 — default excessive range 6–9 vs normal 3–5)
+      OR equivalent short-window rule if defined later
+
+YELLOW — Monitor Closely
+  Trigger if not RED, and ANY of:
+
+  Y1) Excessive jockey pump run events
+      Jockey starts exceed jockey threshold (see section 6)
+
+  Y2) AC power quality low
+      Voltage / frequency out of acceptable band
+      (exact register thresholds TBD from power quality telemetry)
+
+  Y3) Recurring controller alarms of lower severity
+      Alarm from diesel/electric impairment lists
+      BUT durationHours <= 10 (not yet RED)
+      AND/OR recurring pattern (count of occurrences in window TBD)
+
+SITE ALERT ROW VARIABLES (red + yellow drill-down tables)
+  storeId
+  locationDisplay
+  severity                 red | yellow
+  reason                   one of R1–R3 or Y1–Y3 reason strings
+  currentCondition         human-readable live state
+                           e.g. "Engine Failed to Start — active 14 hours"
+                           e.g. "Pump room temp 46°F"
+                           e.g. "9 run events this month (normal: 3–5)"
+  flaggedSince             datetime when the condition first became true
+                           (alarm start, temp breach start, or month threshold crossed)
+
+DASHBOARD COUNTS
+  RED_COUNT                count of stores with severity = red
+  YELLOW_COUNT             count of stores with severity = yellow
+  GREEN_COUNT              TOTAL_STORES - unique(red∪yellow storeIds)
+  TOTAL_STORES             portfolio master list length
+
+
+--------------------------------------------------------------------------------
+5) IMPAIRMENT NAME LISTS (alarm catalog)
+--------------------------------------------------------------------------------
+Use for R1 (RED if > 10h) and Y3 (YELLOW if lower severity / shorter duration).
+
+DIESEL_PUMP_IMPAIRMENTS
+  Battery #1 Trouble
+  Battery #2 Trouble
+  Charger #1 Malfunction
+  Charger #2 Malfunction
+  Engine Failed to Start
+  Main Switch in Off
+  AC Power Off
+  ECM Failure
+  Engine Overspeed
+  Monitoring Failure
+
+ELECTRIC_PUMP_IMPAIRMENTS
+  AC Power Off
+  Fail to Start
+  Interlock On
+  Phase Failure
+  Phase Reversal
+  Transfer Switch Emergency
+  Monitoring Failure
+
+IMPAIRMENTS DETAIL LIST (dashboard Impairments card)
+  One row per currently ACTIVE (unclosed) impairment across portfolio:
+    storeId
+    locationDisplay
+    impairment             alarmName
+    activeSince            alarm startTime
+  IMPAIRMENT_COUNT         number of active impairment rows
+                           (dashboard card value)
+
+
+--------------------------------------------------------------------------------
+6) PUMP ACTIVITY — JOCKEY + MAIN FIRE PUMP
+--------------------------------------------------------------------------------
+Windows needed per pump type (jockey vs main fire):
+  startsThisMonth          count of starts in current calendar month
+  startsLastMonth          count of starts in previous calendar month
+  startsSixMonthBaseline   average or total starts over trailing 6 months
+                           (define: mean monthly starts vs total — pick one)
+
+Derived display fields (per flagged site):
+  percentChangeFromLastMonth
+      = 100 * (startsThisMonth - startsLastMonth) / startsLastMonth
+      (handle startsLastMonth = 0)
+  monthOverMonth
+      = startsThisMonth / startsLastMonth   (display as e.g. 1.38x)
+  monthOverSixMonths
+      = startsThisMonth / sixMonthBaselineMonthlyAvg
+
+JOCKEY PUMP — which sites appear on the list
+  Only trouble / excessive jockey sites (not every store)
+  Threshold TBD; mock UI used examples such as elevated 24h runs
+  and high monthly starts vs prior month.
+  Recommend defining:
+    JOCKEY_EXCESSIVE_MONTHLY_STARTS     TBD
+    JOCKEY_EXCESSIVE_24H_STARTS         TBD
+    JOCKEY_MOM_INCREASE_PCT_FLAG        TBD (e.g. +20%)
+
+FIRE / MAIN PUMP — which sites appear on the list
+  Only trouble / excessive main pump sites
+  Normal month:                         ~3–5 starts
+  Excessive flagged range (current UI): ~6–9 starts this month
+  Recommend constants:
+    FIRE_NORMAL_MIN_STARTS              3
+    FIRE_NORMAL_MAX_STARTS              5
+    FIRE_EXCESSIVE_MIN_STARTS           6
+    FIRE_EXCESSIVE_MAX_STARTS           9
+    (sites with startsThisMonth >= 6 appear on Fire Pump Activity list;
+     also feed RED reason R3 when policy says so)
+
+JOCKEY / FIRE DETAIL TABLE COLUMNS
+  storeId
+  locationDisplay / city
+  startsThisMonth
+  percentChangeFromLastMonth
+  monthOverMonth
+  monthOverSixMonths
+
+DASHBOARD COUNTS
+  JOCKEY_ACTIVITY_COUNT    sites meeting jockey excessive criteria
+  FIRE_ACTIVITY_COUNT      sites meeting fire excessive criteria
+
+
+--------------------------------------------------------------------------------
+7) PREDICTIVE STATISTICS
+--------------------------------------------------------------------------------
+Sites that meet a predictive / trending rule (not necessarily red/yellow yet).
+
+DETAIL TABLE COLUMNS
+  storeId
+  city / locationDisplay
+  statistic                observed trend narrative or metric
+  prediction               what the statistic predicts / recommended action
+
+Example statistic types the UI expects (replace mock with computed rules):
+  Jockey cycle frequency % change over N days
+  Fire pump start duration trending up
+  Pump room temperature trending low (e.g. toward < 55°F)
+  Battery voltage decline over 14 days
+
+Recommend defining structured fields instead of free text only:
+  predictiveMetricKey      e.g. jockey_cycle_pct | start_duration_trend |
+                           pump_room_temp_trend | battery_voltage_trend
+  predictiveMetricValue    numeric value
+  predictiveWindowDays     e.g. 14 / 30
+  predictionHorizonDays    e.g. 14 / 30 / 45 / 60
+  predictionText           human label for UI
+
+DASHBOARD COUNT
+  PREDICTIVE_COUNT         sites with at least one active predictive indicator
+
+NOTE: Use pump room TEMPERATURE sensor data — not humidity.
+
+
+--------------------------------------------------------------------------------
+8) AVERAGE RESOLUTION TIME
+--------------------------------------------------------------------------------
+Measures how long issues (red/yellow flags / impairments) take to clear.
+
+RAW EVENTS NEEDED
+  For each closed (resolved) flag or impairment in a lookback window:
+    openedAt
+    closedAt
+    durationHours = closedAt - openedAt
+    severity / category (optional weighting)
+
+PORTFOLIO AGGREGATES
+  currentHours             average resolution hours for current period
+                           (e.g. current calendar month or trailing 30 days)
+  currentDisplay           human string e.g. "2 days 14 hours"
+  previousMonthHours       same average for previous month
+  previousMonthChangePercent
+      = 100 * (currentHours - previousMonthHours) / previousMonthHours
+      UI treats NEGATIVE % as improvement (green)
+      POSITIVE % as worse (red)
+  sparklinePoints[]        monthly average hours for last N months (e.g. 7)
+  sparklineLabels[]        month labels (optional; for full chart later)
+
+DASHBOARD CARD SHOWS
+  currentDisplay
+  sparkline (from sparklinePoints)
+  previousMonthChangePercent with green/red polarity
+
+
+--------------------------------------------------------------------------------
+9) OVERALL PORTFOLIO GRADE
+--------------------------------------------------------------------------------
+UI shows: letter grade + percentage  e.g. "B+ 87%"
+
+Required outputs
+  portfolioGradeLetter     e.g. A / A- / B+ / B / B- / C / D
+  portfolioGradePercent    0–100
+
+Suggested inputs to compute grade (TBD finalize formula):
+  RED_COUNT / TOTAL_STORES
+  YELLOW_COUNT / TOTAL_STORES
+  IMPAIRMENT_COUNT
+  FIRE_ACTIVITY_COUNT / JOCKEY_ACTIVITY_COUNT
+  average impaired hours
+  resolution time trend
+  predictive risk count
+
+Site-level grade (site detail page) may reuse same engine per store.
+
+
+--------------------------------------------------------------------------------
+10) SITE DETAIL PAGE — PER STORE ASSEMBLY
+--------------------------------------------------------------------------------
+When user clicks sidebar store or search result, assemble:
+
+HEADER
+  storeId
+  locationDisplay
+  currentStatus            red | yellow | green
+  currentStatusLabel       Immediate Attention Required |
+                           Monitor Closely |
+                           No Action Required
+
+OVERALL SITE INFO
+  pumpConfiguration
+  controllerType
+  connectivityStatus
+  pumpRoomTemp             latest reading (°F)
+  lastInspection
+  siteGrade
+  devicesOnline            "N of M"
+  lastRedStateAt           most recent red statusHistory.startedAt
+  lastRedStateActive       true if that red entry has no endedAt
+  lastYellowStateAt        most recent yellow statusHistory.startedAt
+  lastYellowStateActive    true if that yellow entry has no endedAt
+
+ACTIVE FLAGS (union of live conditions for this store)
+  category                 status-alert | impairment | predictive |
+                           jockey-pump | fire-pump
+  title                    flag headline / reason
+  detail                   current condition text
+  date / activeSince
+  severity                 optional red | yellow
+  active                   true
+
+RED / YELLOW STATUS HISTORY
+  severity                 red | yellow
+  reason
+  startedAt
+  endedAt                  null if still active
+
+FLAG HISTORY (active + resolved)
+  date
+  category
+  title / event
+  detail
+  active                   true | false (Resolved)
+
+Data sources feeding site detail:
+  Current SiteAlert for store (if any)
+  Active impairments for store
+  Predictive rows for store
+  Jockey / fire activity rows for store
+  Historical status transitions (need persistent history store)
+  Resolved flag events (need persistent history store)
+
+
+--------------------------------------------------------------------------------
+11) SEARCH / SIDEBAR VARIABLES
+--------------------------------------------------------------------------------
+Sidebar
+  STORES[]                 { storeId, locationDisplay }
+  statusDot                getStoreStatus(storeId) → red | yellow | green
+  TOTAL_STORES             count for "Stores (N)" label
+
+Search (top bar)
+  query                    user-typed store number (partial match OK)
+  results[]                stores where storeId contains query digits
+  onSelect                 open site detail for storeId
+
+
+--------------------------------------------------------------------------------
+12) TIME WINDOWS SUMMARY (what to fetch / cache)
+--------------------------------------------------------------------------------
+As-of / live
+  Current open impairments and durations
+  Current pump room temperature
+  Current connectivity / online status
+  Current red / yellow classification
+
+Last 24 hours
+  Jockey (and optionally fire) short-window run counts for Y1 / R3 variants
+
+Current calendar month
+  Main fire pump startsThisMonth
+  Jockey startsThisMonth
+  Resolution-time average for "current" period
+
+Previous calendar month
+  startsLastMonth (both pumps)
+  previousMonthHours for resolution time MoM %
+
+Trailing 6 months
+  Monthly start series for monthOverSixMonths baseline
+  Sparkline points for resolution time (or last 7 months)
+
+Historical (persistent — not only live telemetry pull)
+  Status history (red/yellow enter/exit with reason + timestamps)
+  Resolved flag / impairment history for site detail Flag History
+  Inspection dates if not in telemetry feed
+
+
+--------------------------------------------------------------------------------
+13) THRESHOLD / POLICY CONSTANTS (dashboard defaults)
+--------------------------------------------------------------------------------
+IMPAIR_RED_HOURS                      10
+PUMP_ROOM_TEMP_RED_F                  50
+PUMP_ROOM_TEMP_PREDICTIVE_WARN_F      55   (example predictive trend)
+
+FIRE_NORMAL_MIN_STARTS                3
+FIRE_NORMAL_MAX_STARTS                5
+FIRE_EXCESSIVE_MIN_STARTS             6
+FIRE_EXCESSIVE_MAX_STARTS             9
+
+JOCKEY_EXCESSIVE_MONTHLY_STARTS       TBD
+JOCKEY_EXCESSIVE_24H_STARTS           TBD
+JOCKEY_MOM_INCREASE_PCT_FLAG          TBD
+
+AC_POWER_VOLTAGE_LOW                  TBD (from power quality telemetry)
+AC_POWER_FREQUENCY_LOW / HIGH         TBD
+
+YELLOW_RECURRING_ALARM_WINDOW_DAYS    TBD
+YELLOW_RECURRING_ALARM_MIN_COUNT      TBD
+
+RESOLUTION_LOOKBACK_MONTHS            7    (sparkline)
+PORTFOLIO_GRADE_*                     TBD (letter bands vs percent)
+
+
+--------------------------------------------------------------------------------
+14) DASHBOARD KPI QUICK LIST (must compute for main page)
+--------------------------------------------------------------------------------
+RED_COUNT
+YELLOW_COUNT
+GREEN_COUNT
+IMPAIRMENT_COUNT
+PREDICTIVE_COUNT
+JOCKEY_ACTIVITY_COUNT
+FIRE_ACTIVITY_COUNT
+RESOLUTION_TIME_DISPLAY
+RESOLUTION_TIME_MOM_PCT
+RESOLUTION_SPARKLINE_POINTS[]
+PORTFOLIO_GRADE_LETTER
+PORTFOLIO_GRADE_PERCENT
+
+
+--------------------------------------------------------------------------------
+15) MINIMUM DATA CONTRACT TO MAKE THE DASHBOARD REAL
+--------------------------------------------------------------------------------
+For each Home Depot store in the portfolio:
+
+IDENTITY
+  storeId, city, state, deviceIds[], pump types at site
+
+LIVE / PERIOD TELEMETRY (per device, then rolled up to store)
+  open impairments: alarmName, startTime, durationHours
+  pump room temperature (°F)
+  jockey starts (month, last month, 6-mo baseline, optional 24h)
+  main fire pump starts (month, last month, 6-mo baseline)
+  AC power quality metrics (if available)
+  battery / other predictive registers (if available)
+  connectivity / online state
+
+HISTORY (persisted)
+  red/yellow status transitions
+  resolved flags / impairments with open/close times
+  monthly resolution-time averages
+
+Then compute and display:
+  red / yellow / green classification + counts
+  impairment / predictive / jockey / fire drill-down tables
+  average resolution time + sparkline + MoM %
+  portfolio grade
+  site detail pages from the same store-level assembly
+
+
+--------------------------------------------------------------------------------
+16) QUICK MAPPING: WHERE EACH VALUE COMES FROM
+--------------------------------------------------------------------------------
+Store master / mapping table     → storeId, city, state, deviceIds
+Device system info               → pump type, site labels, city/state check
+Device events (alarms)           → impairments, durations, red R1 / yellow Y3
+Device events (runs)           → jockey + fire starts, MoM, Mo6M, excessive
+Telemetry registers / sensors  → pump room temp (R2 + predictive),
+                                   power quality (Y2), battery trends
+Persisted history DB             → status history, resolved flags,
+                                   resolution-time series
+Ops / CMMS (optional)            → lastInspection, work orders
+Dashboard rules engine           → red/yellow/green, KPI counts,
+                                   portfolio grade, site assembly
+Fleet Portal UI                  → cards, tables, sidebar, search, site page
+
+
+--------------------------------------------------------------------------------
+17) OVERLAP WITH MONTHLY REPORT REQUIREMENTS
+--------------------------------------------------------------------------------
+Already defined in ReportGenerationRequirements.txt and reusable here:
+  Device system info fields
+  Pump run events → runCount / period minutes
+  Impaired alarm events → impaired hours + alarm names
+  IMPAIR_LIMIT_HOURS = 10 (same 10h idea as red impairment rule)
+
+Dashboard-specific additions beyond the monthly report contract:
+  Store-number portfolio model (not only Device ID list)
+  Red / yellow / green portfolio status taxonomy
+  Pump room temperature sensor stream
+  Jockey vs main pump split activity metrics + MoM / Mo6M
+  Predictive statistics layer
+  Resolution time averages + history sparkline
+  Portfolio / site grading
+  Persistent status & flag history for site detail pages
+  Search by store number
+
+================================================================================
+END OF FILE
+================================================================================

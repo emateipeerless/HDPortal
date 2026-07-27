@@ -26,6 +26,7 @@ export function AlertListView({ severity, onBack }: AlertListViewProps) {
       accentClass={`detail-view--${severity}`}
       onBack={onBack}
     >
+      <div className="detail-view__table-wrap">
       <table className="detail-view__table">
           <thead>
             <tr>
@@ -54,6 +55,7 @@ export function AlertListView({ severity, onBack }: AlertListViewProps) {
             })}
           </tbody>
       </table>
+      </div>
     </DetailViewLayout>
   )
 }
