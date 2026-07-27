@@ -5,9 +5,11 @@ import { getStoreById, searchStoresByNumber } from '../data/stores'
 interface TopBarProps {
   selectedStoreId: string | null
   onSelectStore: (storeId: string) => void
+  displayName: string
+  onLogout: () => void
 }
 
-export function TopBar({ selectedStoreId, onSelectStore }: TopBarProps) {
+export function TopBar({ selectedStoreId, onSelectStore, displayName, onLogout }: TopBarProps) {
   const [query, setQuery] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
@@ -41,7 +43,8 @@ export function TopBar({ selectedStoreId, onSelectStore }: TopBarProps) {
           </span>
         )}
       </div>
-      <div className="topbar__search" ref={searchRef}>
+      <div className="topbar__right">
+        <div className="topbar__search" ref={searchRef}>
         <svg
           className="topbar__search-icon"
           width="18"
@@ -97,6 +100,13 @@ export function TopBar({ selectedStoreId, onSelectStore }: TopBarProps) {
             )}
           </ul>
         )}
+        </div>
+        <div className="topbar__user">
+          <span className="topbar__user-name">{displayName}</span>
+          <button type="button" className="topbar__logout" onClick={onLogout}>
+            Sign out
+          </button>
+        </div>
       </div>
     </header>
   )
