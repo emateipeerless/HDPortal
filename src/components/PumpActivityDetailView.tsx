@@ -6,10 +6,12 @@ import {
   type PumpType,
 } from '../data/mockPumpActivity'
 import { getStoreById } from '../data/stores'
+import { StoreIdLink } from './StoreIdLink'
 
 interface PumpActivityDetailViewProps {
   pumpType: PumpType
   onBack: () => void
+  onSelectStore: (storeId: string) => void
 }
 
 const titles: Record<PumpType, string> = {
@@ -17,7 +19,11 @@ const titles: Record<PumpType, string> = {
   fire: 'Fire Pump Activity',
 }
 
-export function PumpActivityDetailView({ pumpType, onBack }: PumpActivityDetailViewProps) {
+export function PumpActivityDetailView({
+  pumpType,
+  onBack,
+  onSelectStore,
+}: PumpActivityDetailViewProps) {
   const records = getPumpActivityRecords(pumpType)
 
   return (
@@ -45,7 +51,7 @@ export function PumpActivityDetailView({ pumpType, onBack }: PumpActivityDetailV
             return (
               <tr key={`${item.storeId}-${item.pumpType}`}>
                 <td>
-                  <span className="detail-view__store-id">{item.storeId}</span>
+                  <StoreIdLink storeId={item.storeId} onSelect={onSelectStore} />
                 </td>
                 <td>{store?.location ?? 'Unknown location'}</td>
                 <td>{item.startsThisMonth}</td>

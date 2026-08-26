@@ -9,10 +9,12 @@ import {
 import { getStoreById } from '../data/stores'
 import { formatFlaggedDate } from '../utils/formatDate'
 import { DetailViewLayout } from './DetailViewLayout'
+import { StoreIdLink } from './StoreIdLink'
 
 interface AlertListViewProps {
   severity: AlertSeverity
   onBack: () => void
+  onSelectStore: (storeId: string) => void
 }
 
 const titles: Record<AlertSeverity, string> = {
@@ -25,7 +27,7 @@ const triggerCatalog: Record<AlertSeverity, typeof RED_STATUS_TRIGGERS> = {
   yellow: YELLOW_STATUS_TRIGGERS,
 }
 
-export function AlertListView({ severity, onBack }: AlertListViewProps) {
+export function AlertListView({ severity, onBack, onSelectStore }: AlertListViewProps) {
   const alerts = getAlertsBySeverity(severity)
   const triggers = triggerCatalog[severity]
 
@@ -54,10 +56,11 @@ export function AlertListView({ severity, onBack }: AlertListViewProps) {
                 return (
                   <tr key={`${alert.storeId}-${alert.flaggedSince}`}>
                     <td>
-                      <span className="detail-view__store-id">{alert.storeId}</span>
-                      <span className="detail-view__store-location">
-                        {store?.location ?? 'Unknown location'}
-                      </span>
+                      <StoreIdLink
+                        storeId={alert.storeId}
+                        location={store?.location ?? 'Unknown location'}
+                        onSelect={onSelectStore}
+                      />
                     </td>
                     <td>{alert.reason}</td>
                     <td>{alert.currentCondition}</td>

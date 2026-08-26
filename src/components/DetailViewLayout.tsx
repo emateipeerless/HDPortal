@@ -5,6 +5,7 @@ interface DetailViewLayoutProps {
   subtitle: string
   accentClass?: string
   onBack: () => void
+  backLabel?: string
   children: ReactNode
 }
 
@@ -13,13 +14,14 @@ export function DetailViewLayout({
   subtitle,
   accentClass = '',
   onBack,
+  backLabel = 'Dashboard',
   children,
 }: DetailViewLayoutProps) {
   return (
     <main className={`detail-view ${accentClass}`}>
       <div className="detail-view__header">
         <button type="button" className="detail-view__back" onClick={onBack}>
-          ← Back to Dashboard
+          ← Back to {backLabel}
         </button>
         <div>
           <h2 className="detail-view__title">{title}</h2>

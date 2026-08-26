@@ -19,14 +19,25 @@ import { TopBar } from './components/TopBar'
 import type { AlertSeverity } from './data/mockAlerts'
 import './App.css'
 
-type AppView =
-  | 'dashboard'
-  | 'store'
+type ListView =
   | AlertSeverity
   | 'impairments'
   | 'predictive-statistics'
   | 'jockey-pump'
   | 'fire-pump'
+
+type AppView = 'dashboard' | 'store' | ListView
+type ReturnView = Exclude<AppView, 'store'>
+
+const RETURN_VIEW_LABELS: Record<ReturnView, string> = {
+  dashboard: 'Dashboard',
+  red: 'Immediate Attention Required',
+  yellow: 'Monitor Closely',
+  impairments: 'Impairments',
+  'predictive-statistics': 'Predictive Statistics',
+  'jockey-pump': 'Jockey Pump Activity',
+  'fire-pump': 'Fire Pump Activity',
+}
 
 function loadInitialSession(): AuthSession | null {
   const existing = readSession()
@@ -43,12 +54,14 @@ export default function App() {
   const [timeoutMessage, setTimeoutMessage] = useState<string | null>(null)
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
   const [view, setView] = useState<AppView>('dashboard')
+  const [returnView, setReturnView] = useState<ReturnView>('dashboard')
 
   const handleLogout = (message?: string) => {
     clearSession()
     setSession(null)
     setSelectedStoreId(null)
     setView('dashboard')
+    setReturnView('dashboard')
     setTimeoutMessage(message ?? null)
   }
 
@@ -125,21 +138,37 @@ export default function App() {
 
   const goToDashboard = () => {
     setView('dashboard')
+    setReturnView('dashboard')
     setSelectedStoreId(null)
   }
 
-  const handleSelectStore = (storeId: string) => {
+  const openStoreFromSidebar = (storeId: string) => {
+    setReturnView('dashboard')
     setSelectedStoreId(storeId)
     setView('store')
   }
 
+  const openStoreFromList = (storeId: string) => {
+    if (view !== 'store') {
+      setReturnView(view)
+    }
+    setSelectedStoreId(storeId)
+    setView('store')
+  }
+
+  const handleStoreBack = () => {
+    setView(returnView)
+    if (returnView === 'dashboard') {
+      setSelectedStoreId(null)
+    }
+  }
+
   return (
     <div className="app">
-      <Sidebar selectedStoreId={selectedStoreId} onSelectStore={handleSelectStore} />
+      <Sidebar selectedStoreId={selectedStoreId} onSelectStore={openStoreFromSidebar} />
       <div className="app__main">
         <TopBar
           selectedStoreId={selectedStoreId}
-          onSelectStore={handleSelectStore}
           displayName={session.displayName}
           onLogout={() => handleLogout()}
         />
@@ -154,20 +183,34 @@ export default function App() {
           />
         )}
         {view === 'store' && selectedStoreId && (
-          <StoreDetailView storeId={selectedStoreId} onBack={goToDashboard} />
+          <StoreDetailView
+            storeId={selectedStoreId}
+            onBack={handleStoreBack}
+            backLabel={RETURN_VIEW_LABELS[returnView]}
+          />
         )}
         {(view === 'red' || view === 'yellow') && (
-          <AlertListView severity={view} onBack={goToDashboard} />
+          <AlertListView severity={view} onBack={goToDashboard} onSelectStore={openStoreFromList} />
         )}
-        {view === 'impairments' && <ImpairmentsDetailView onBack={goToDashboard} />}
+        {view === 'impairments' && (
+          <ImpairmentsDetailView onBack={goToDashboard} onSelectStore={openStoreFromList} />
+        )}
         {view === 'predictive-statistics' && (
-          <PredictiveStatsDetailView onBack={goToDashboard} />
+          <PredictiveStatsDetailView onBack={goToDashboard} onSelectStore={openStoreFromList} />
         )}
         {view === 'jockey-pump' && (
-          <PumpActivityDetailView pumpType="jockey" onBack={goToDashboard} />
+          <PumpActivityDetailView
+            pumpType="jockey"
+            onBack={goToDashboard}
+            onSelectStore={openStoreFromList}
+          />
         )}
         {view === 'fire-pump' && (
-          <PumpActivityDetailView pumpType="fire" onBack={goToDashboard} />
+          <PumpActivityDetailView
+            pumpType="fire"
+            onBack={goToDashboard}
+            onSelectStore={openStoreFromList}
+          />
         )}
       </div>
     </div>

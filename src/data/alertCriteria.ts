@@ -82,6 +82,33 @@ export const YELLOW_JOCKEY_IMPAIRMENTS: TroubleAlert[] = [
   { alert: 'Excessive Jockey Daily Starts', remedy: '' },
 ]
 
+const RED_IMPAIRMENT_NAMES = new Set([
+  ...RED_DIESEL_IMPAIRMENTS.map((item) => item.alert),
+  ...RED_ELECTRIC_IMPAIRMENTS.map((item) => item.alert),
+])
+
+const YELLOW_IMPAIRMENT_NAMES = new Set([
+  ...YELLOW_DIESEL_IMPAIRMENTS.map((item) => item.alert),
+  ...YELLOW_ELECTRIC_IMPAIRMENTS.map((item) => item.alert),
+  ...YELLOW_JOCKEY_IMPAIRMENTS.map((item) => item.alert),
+])
+
+export type ImpairmentSeverityDrive = 'red' | 'yellow'
+
+/** Which status list an active impairment belongs to (red wins if ever on both). */
+export function getImpairmentSeverityDrive(name: string): ImpairmentSeverityDrive | null {
+  if (RED_IMPAIRMENT_NAMES.has(name)) return 'red'
+  if (YELLOW_IMPAIRMENT_NAMES.has(name)) return 'yellow'
+  return null
+}
+
+export function getImpairmentDriveLabel(name: string): string {
+  const drive = getImpairmentSeverityDrive(name)
+  if (drive === 'red') return 'Red site'
+  if (drive === 'yellow') return 'Yellow site'
+  return 'Unclassified'
+}
+
 /** @deprecated Prefer RED_DIESEL_IMPAIRMENTS — kept for any older imports. */
 export const DIESEL_PUMP_IMPAIRMENTS = RED_DIESEL_IMPAIRMENTS.map((item) => item.alert)
 

@@ -23,7 +23,7 @@ export const MOCK_PREDICTIVE_STATISTICS: PredictiveStatistic[] = [
   {
     storeId: '0561',
     statistic: 'Battery voltage decline over 14 days',
-    prediction: 'Battery replacement recommended within 60 days',
+    prediction: 'Diesel controller battery replacement recommended within 60 days',
   },
 ]
 

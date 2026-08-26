@@ -13,8 +13,8 @@ export interface SiteAlert {
 
 /**
  * Portfolio status mock — moderate trouble set with diverse red/yellow causes.
- * Red: diesel impairment, electric impairment, pump room temp, excessive main runs.
- * Yellow: mix of diesel, electric, and jockey trouble alerts (not jockey-only).
+ * Each store is Diesel + Jockey or Electric + Jockey (never both mains).
+ * Red/yellow impairment examples match that site's main pump type.
  */
 export const MOCK_SITE_ALERTS: SiteAlert[] = [
   // --- RED ---

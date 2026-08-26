@@ -5,7 +5,7 @@ import {
   MOCK_FIRE_PUMP_ACTIVITY,
   MOCK_JOCKEY_PUMP_ACTIVITY,
 } from './mockPumpActivity'
-import { getStoreById } from './stores'
+import { getControllerType, getDevicesOnlineLabel, getPumpConfiguration, getStoreById } from './stores'
 
 export type StoreStatus = 'red' | 'yellow' | 'green'
 
@@ -33,6 +33,7 @@ export interface StoreStatusHistoryEntry {
 }
 
 export interface StoreOverallInfo {
+  fireconnectDeviceId: string
   pumpConfiguration: string
   controllerType: string
   connectivityStatus: string
@@ -160,13 +161,14 @@ const MOCK_STATUS_HISTORY: Record<string, StoreStatusHistoryEntry[]> = {
 }
 
 const DEFAULT_OVERALL_INFO: StoreOverallInfo = {
-  pumpConfiguration: 'Diesel + Electric + Jockey',
-  controllerType: 'Fire Pump Controller',
+  fireconnectDeviceId: '—',
+  pumpConfiguration: 'Diesel + Jockey',
+  controllerType: 'Diesel Fire Pump Controller',
   connectivityStatus: 'Online',
   pumpRoomTemp: '68°F',
   lastInspection: '2026-05-12',
   siteGrade: 'A',
-  devicesOnline: '3 of 3',
+  devicesOnline: '2 of 2',
 }
 
 const STORE_INFO_OVERRIDES: Record<string, Partial<StoreOverallInfo>> = {
@@ -208,6 +210,10 @@ export function getStoreProfile(storeId: string): StoreProfile | undefined {
     currentAlert,
     overallInfo: {
       ...DEFAULT_OVERALL_INFO,
+      fireconnectDeviceId: store.fireconnectDeviceId,
+      pumpConfiguration: getPumpConfiguration(store),
+      controllerType: getControllerType(store),
+      devicesOnline: getDevicesOnlineLabel(store),
       ...STORE_INFO_OVERRIDES[storeId],
       siteGrade: currentStatus === 'red' ? 'D' : currentStatus === 'yellow' ? 'B-' : (STORE_INFO_OVERRIDES[storeId]?.siteGrade ?? DEFAULT_OVERALL_INFO.siteGrade),
     },

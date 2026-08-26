@@ -2,12 +2,17 @@ import { MOCK_PREDICTIVE_STATISTICS } from '../data/mockPredictiveStats'
 import { PREDICTIVE_STATISTICS_CATALOG } from '../data/predictiveStatsCatalog'
 import { getStoreById } from '../data/stores'
 import { DetailViewLayout } from './DetailViewLayout'
+import { StoreIdLink } from './StoreIdLink'
 
 interface PredictiveStatsDetailViewProps {
   onBack: () => void
+  onSelectStore: (storeId: string) => void
 }
 
-export function PredictiveStatsDetailView({ onBack }: PredictiveStatsDetailViewProps) {
+export function PredictiveStatsDetailView({
+  onBack,
+  onSelectStore,
+}: PredictiveStatsDetailViewProps) {
   return (
     <DetailViewLayout
       title="Predictive Statistics"
@@ -33,7 +38,7 @@ export function PredictiveStatsDetailView({ onBack }: PredictiveStatsDetailViewP
                 return (
                   <tr key={`${item.storeId}-${item.statistic}`}>
                     <td>
-                      <span className="detail-view__store-id">{item.storeId}</span>
+                      <StoreIdLink storeId={item.storeId} onSelect={onSelectStore} />
                     </td>
                     <td>{store?.location ?? 'Unknown location'}</td>
                     <td>{item.statistic}</td>

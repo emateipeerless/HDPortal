@@ -1,0 +1,7 @@
+{
+  "httpMethod": "POST",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": "{\"storeNumber\":\"0289\",\"acceptanceTest\":{\"storeNumber\":\"0289\",\"city\":\"Pinellas Park\",\"state\":\"FL\",\"acceptanceTestDate\":\"2026-04-16\",\"pumpMake\":\"Peerless\",\"pumpType\":\"Horizontal Split Case\",\"pumpPosition\":\"Main\",\"pumpModel\":\"5AEF14\",\"pumpSerial\":\"ABC123\",\"pumpRatedGpm\":1000,\"pumpRatedRpm\":1750,\"pumpRatedPsi\":125,\"pumpSuction\":\"City\",\"driverType\":\"Diesel\",\"driverManufacturer\":\"Cummins\",\"driverSerial\":\"ENG001\",\"driverModel\":\"QSB6.7\",\"driverRatedHp\":160,\"driverRatedRpm\":1750,\"controllerManufacturer\":\"Firetrol\",\"controllerModel\":\"FTA1000\",\"controllerSerial\":\"CTRL001\",\"startPsi\":110,\"startMethod\":\"Pressure\",\"transferSwitch\":\"Yes\",\"upstreamDisconnect\":\"Yes\",\"jockeyPumpManufacturer\":\"Grundfos\",\"jockeyPumpType\":\"Vertical\",\"jockeyPumpSize\":\"1.5\\\"\",\"jockeyPumpVoltage\":460,\"jockeyPumpAmps\":5.2,\"jockeyPumpHp\":3},\"readings\":{\"churn\":{\"speedRpm\":1750,\"suctionPsi\":40,\"dischargePsi\":145,\"flowGpm\":0},\"rated\":{\"speedRpm\":1750,\"suctionPsi\":35,\"dischargePsi\":125,\"flowGpm\":1000},\"overflow\":{\"speedRpm\":1750,\"suctionPsi\":30,\"dischargePsi\":100,\"flowGpm\":1500}}}"
+}

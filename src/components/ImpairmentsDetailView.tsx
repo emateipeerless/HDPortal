@@ -4,15 +4,19 @@ import {
   YELLOW_DIESEL_IMPAIRMENTS,
   YELLOW_ELECTRIC_IMPAIRMENTS,
   YELLOW_JOCKEY_IMPAIRMENTS,
+  getImpairmentDriveLabel,
+  getImpairmentSeverityDrive,
   type TroubleAlert,
 } from '../data/alertCriteria'
 import { MOCK_ACTIVE_IMPAIRMENTS } from '../data/mockImpairments'
 import { getStoreById } from '../data/stores'
 import { formatFlaggedDate } from '../utils/formatDate'
 import { DetailViewLayout } from './DetailViewLayout'
+import { StoreIdLink } from './StoreIdLink'
 
 interface ImpairmentsDetailViewProps {
   onBack: () => void
+  onSelectStore: (storeId: string) => void
 }
 
 interface ImpairmentReferenceGroup {
@@ -60,7 +64,7 @@ const IMPAIRMENT_REFERENCE_GROUPS: ImpairmentReferenceGroup[] = [
   },
 ]
 
-export function ImpairmentsDetailView({ onBack }: ImpairmentsDetailViewProps) {
+export function ImpairmentsDetailView({ onBack, onSelectStore }: ImpairmentsDetailViewProps) {
   return (
     <DetailViewLayout
       title="Impairments"
@@ -76,21 +80,31 @@ export function ImpairmentsDetailView({ onBack }: ImpairmentsDetailViewProps) {
               <tr>
                 <th scope="col">Store</th>
                 <th scope="col">Impairment</th>
+                <th scope="col">Drives site as</th>
                 <th scope="col">Active Since</th>
               </tr>
             </thead>
             <tbody>
               {MOCK_ACTIVE_IMPAIRMENTS.map((item) => {
                 const store = getStoreById(item.storeId)
+                const drive = getImpairmentSeverityDrive(item.impairment)
                 return (
                   <tr key={`${item.storeId}-${item.impairment}`}>
                     <td>
-                      <span className="detail-view__store-id">{item.storeId}</span>
-                      <span className="detail-view__store-location">
-                        {store?.location ?? 'Unknown location'}
-                      </span>
+                      <StoreIdLink
+                        storeId={item.storeId}
+                        location={store?.location ?? 'Unknown location'}
+                        onSelect={onSelectStore}
+                      />
                     </td>
                     <td>{item.impairment}</td>
+                    <td>
+                      <span
+                        className={`impairment-drive impairment-drive--${drive ?? 'none'}`}
+                      >
+                        {getImpairmentDriveLabel(item.impairment)}
+                      </span>
+                    </td>
                     <td>{formatFlaggedDate(item.activeSince)}</td>
                   </tr>
                 )
