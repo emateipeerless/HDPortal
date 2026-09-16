@@ -5,7 +5,6 @@ import { ResolutionTimeCard } from './ResolutionTimeCard'
 interface DashboardProps {
   onViewRedAlerts: () => void
   onViewYellowAlerts: () => void
-  onViewImpairments: () => void
   onViewPredictiveStats: () => void
   onViewJockeyPump: () => void
   onViewFirePump: () => void
@@ -14,7 +13,6 @@ interface DashboardProps {
 export function Dashboard({
   onViewRedAlerts,
   onViewYellowAlerts,
-  onViewImpairments,
   onViewPredictiveStats,
   onViewJockeyPump,
   onViewFirePump,
@@ -40,12 +38,6 @@ export function Dashboard({
           title="No Action Required"
           value={mockMetrics.noActionRequired}
           variant="green"
-        />
-        <MetricCard
-          title="Impairments"
-          value={mockMetrics.impairments}
-          variant="blue"
-          onClick={onViewImpairments}
         />
         <MetricCard
           title="Predictive Statistics"

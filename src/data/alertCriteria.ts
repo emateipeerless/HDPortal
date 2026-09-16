@@ -7,8 +7,6 @@ export interface TroubleAlert {
 export const RED_DIESEL_IMPAIRMENTS: TroubleAlert[] = [
   { alert: 'Battery #1 Trouble', remedy: 'Battery #1 Trouble - Cleared' },
   { alert: 'Battery #2 Trouble', remedy: 'Battery #2 Trouble - Cleared' },
-  { alert: 'Charger #1 Malfunction', remedy: 'Charger #1 Malfunction - Cleared' },
-  { alert: 'Charger #2 Malfunction', remedy: 'Charger #2 Malfunction - Cleared' },
   { alert: 'Engine Failed to Start', remedy: 'Engine Failed to Start - Cleared' },
   { alert: 'Main Switch in Manual', remedy: 'Main Switch in Auto' },
   { alert: 'Main Switch in Off', remedy: 'Main Switch in Auto' },
@@ -29,6 +27,8 @@ export const YELLOW_DIESEL_IMPAIRMENTS: TroubleAlert[] = [
   { alert: 'Automatic Shutdown is Enabled', remedy: 'Automatic Shutdown is Disabled' },
   { alert: 'Charger #1 AC Voltage', remedy: 'Charger #1 AC Voltage - Cleared' },
   { alert: 'Charger #2 AC Voltage', remedy: 'Charger #2 AC Voltage - Cleared' },
+  { alert: 'Charger #1 Malfunction', remedy: 'Charger #1 Malfunction - Cleared' },
+  { alert: 'Charger #2 Malfunction', remedy: 'Charger #2 Malfunction - Cleared' },
   { alert: 'Common Trouble Alarm', remedy: 'Common Trouble Alarm - Cleared' },
   { alert: 'ECM Failure', remedy: 'ECM Failure - Cleared' },
   { alert: 'ECM Warning', remedy: 'ECM Warning - Cleared' },

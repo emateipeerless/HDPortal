@@ -9,7 +9,6 @@ import {
 } from './auth/session'
 import { AlertListView } from './components/AlertListView'
 import { Dashboard } from './components/Dashboard'
-import { ImpairmentsDetailView } from './components/ImpairmentsDetailView'
 import { LoginPage } from './components/LoginPage'
 import { PredictiveStatsDetailView } from './components/PredictiveStatsDetailView'
 import { PumpActivityDetailView } from './components/PumpActivityDetailView'
@@ -21,7 +20,6 @@ import './App.css'
 
 type ListView =
   | AlertSeverity
-  | 'impairments'
   | 'predictive-statistics'
   | 'jockey-pump'
   | 'fire-pump'
@@ -33,7 +31,6 @@ const RETURN_VIEW_LABELS: Record<ReturnView, string> = {
   dashboard: 'Dashboard',
   red: 'Immediate Attention Required',
   yellow: 'Monitor Closely',
-  impairments: 'Impairments',
   'predictive-statistics': 'Predictive Statistics',
   'jockey-pump': 'Jockey Pump Activity',
   'fire-pump': 'Fire Pump Activity',
@@ -176,7 +173,6 @@ export default function App() {
           <Dashboard
             onViewRedAlerts={() => setView('red')}
             onViewYellowAlerts={() => setView('yellow')}
-            onViewImpairments={() => setView('impairments')}
             onViewPredictiveStats={() => setView('predictive-statistics')}
             onViewJockeyPump={() => setView('jockey-pump')}
             onViewFirePump={() => setView('fire-pump')}
@@ -191,9 +187,6 @@ export default function App() {
         )}
         {(view === 'red' || view === 'yellow') && (
           <AlertListView severity={view} onBack={goToDashboard} onSelectStore={openStoreFromList} />
-        )}
-        {view === 'impairments' && (
-          <ImpairmentsDetailView onBack={goToDashboard} onSelectStore={openStoreFromList} />
         )}
         {view === 'predictive-statistics' && (
           <PredictiveStatsDetailView onBack={goToDashboard} onSelectStore={openStoreFromList} />
