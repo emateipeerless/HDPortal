@@ -162,7 +162,11 @@ export default function App() {
 
   return (
     <div className="app">
-      <Sidebar selectedStoreId={selectedStoreId} onSelectStore={openStoreFromSidebar} />
+      <Sidebar
+        selectedStoreId={selectedStoreId}
+        onSelectStore={openStoreFromSidebar}
+        onGoHome={goToDashboard}
+      />
       <div className="app__main">
         <TopBar
           selectedStoreId={selectedStoreId}

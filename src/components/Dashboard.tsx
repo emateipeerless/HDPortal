@@ -1,6 +1,7 @@
 import { mockMetrics } from '../data/mockMetrics'
 import { MetricCard } from './MetricCard'
 import { ResolutionTimeCard } from './ResolutionTimeCard'
+import { StatusPieChart } from './StatusPieChart'
 
 interface DashboardProps {
   onViewRedAlerts: () => void
@@ -60,6 +61,13 @@ export function Dashboard({
       </section>
 
       <section className="dashboard__row dashboard__row--summary" aria-label="Portfolio summary">
+        <StatusPieChart
+          red={mockMetrics.immediateAttention}
+          yellow={mockMetrics.monitorClosely}
+          green={mockMetrics.noActionRequired}
+          onRedClick={onViewRedAlerts}
+          onYellowClick={onViewYellowAlerts}
+        />
         <ResolutionTimeCard />
         <MetricCard
           title="Overall Portfolio Grade"

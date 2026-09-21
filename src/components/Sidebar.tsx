@@ -7,6 +7,7 @@ type SidebarSort = 'az' | 'status'
 interface SidebarProps {
   selectedStoreId: string | null
   onSelectStore: (storeId: string) => void
+  onGoHome: () => void
 }
 
 const STATUS_ORDER: Record<StoreStatus, number> = {
@@ -15,7 +16,7 @@ const STATUS_ORDER: Record<StoreStatus, number> = {
   green: 2,
 }
 
-export function Sidebar({ selectedStoreId, onSelectStore }: SidebarProps) {
+export function Sidebar({ selectedStoreId, onSelectStore, onGoHome }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [query, setQuery] = useState('')
   const [sortMode, setSortMode] = useState<SidebarSort>('az')
@@ -35,7 +36,13 @@ export function Sidebar({ selectedStoreId, onSelectStore }: SidebarProps) {
   return (
     <aside className={`sidebar ${isCollapsed ? 'sidebar--collapsed' : ''}`}>
       <div className="sidebar__header">
-        <div className="sidebar__brand">
+        <button
+          type="button"
+          className="sidebar__brand"
+          onClick={onGoHome}
+          aria-label="Go to dashboard home"
+          title="Go to dashboard"
+        >
           <span className="sidebar__brand-icon" aria-hidden="true">
             HD
           </span>
@@ -45,7 +52,7 @@ export function Sidebar({ selectedStoreId, onSelectStore }: SidebarProps) {
               <p className="sidebar__brand-subtitle">Fleet Portal</p>
             </div>
           )}
-        </div>
+        </button>
         <button
           type="button"
           className="sidebar__toggle"
