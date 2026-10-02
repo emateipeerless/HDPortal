@@ -8,6 +8,8 @@ interface MetricCardProps {
   variant: MetricCardVariant
   onClick?: () => void
   hint?: string
+  compact?: boolean
+  icon?: ReactNode
 }
 
 const variantClass: Record<MetricCardVariant, string> = {
@@ -18,30 +20,43 @@ const variantClass: Record<MetricCardVariant, string> = {
   grey: 'metric-card--grey',
 }
 
-export function MetricCard({ title, value, variant, onClick, hint = 'View details' }: MetricCardProps) {
+export function MetricCard({
+  title,
+  value,
+  variant,
+  onClick,
+  hint = 'View details',
+  compact = false,
+  icon,
+}: MetricCardProps) {
   const isClickable = Boolean(onClick)
   const className = [
     'metric-card',
     variantClass[variant],
+    compact ? 'metric-card--compact' : '',
     isClickable ? 'metric-card--clickable' : '',
   ]
     .filter(Boolean)
     .join(' ')
 
+  const body = (
+    <>
+      <div className="metric-card__head">
+        {icon}
+        <h2 className="metric-card__title">{title}</h2>
+      </div>
+      <p className="metric-card__value">{value}</p>
+      {isClickable && <span className="metric-card__hint">{hint}</span>}
+    </>
+  )
+
   if (isClickable) {
     return (
       <button type="button" className={className} onClick={onClick}>
-        <h2 className="metric-card__title">{title}</h2>
-        <p className="metric-card__value">{value}</p>
-        <span className="metric-card__hint">{hint}</span>
+        {body}
       </button>
     )
   }
 
-  return (
-    <article className={className}>
-      <h2 className="metric-card__title">{title}</h2>
-      <p className="metric-card__value">{value}</p>
-    </article>
-  )
+  return <article className={className}>{body}</article>
 }

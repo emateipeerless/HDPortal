@@ -180,6 +180,7 @@ export default function App() {
             onViewPredictiveStats={() => setView('predictive-statistics')}
             onViewJockeyPump={() => setView('jockey-pump')}
             onViewFirePump={() => setView('fire-pump')}
+            onSelectStore={openStoreFromSidebar}
           />
         )}
         {view === 'store' && selectedStoreId && (
