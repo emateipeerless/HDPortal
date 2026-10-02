@@ -185,11 +185,6 @@ const STORE_INFO_OVERRIDES: Record<string, Partial<StoreOverallInfo>> = {
   '3863': { pumpRoomTemp: '69°F', siteGrade: 'B-' },
   '0568': { pumpRoomTemp: '71°F', siteGrade: 'B-' },
   '6213': { pumpRoomTemp: '67°F', siteGrade: 'B-' },
-  '1701': { connectivityStatus: 'Offline', devicesOnline: '0 of 1' },
-  '6946': { connectivityStatus: 'Offline', devicesOnline: '0 of 2' },
-  '6688': { connectivityStatus: 'Offline', devicesOnline: '0 of 1' },
-  '6577': { connectivityStatus: 'Offline', devicesOnline: '0 of 2' },
-  '2605': { connectivityStatus: 'Offline', devicesOnline: '0 of 2' },
 }
 
 export function getStoreStatus(storeId: string): StoreStatus {
